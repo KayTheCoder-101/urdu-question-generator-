@@ -1,0 +1,6 @@
+datasets
+sentencepiece
+sacrebleu
+rouge-score
+torch
+streamlit
