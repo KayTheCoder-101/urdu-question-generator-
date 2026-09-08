@@ -46,5 +46,15 @@ def build_split(split, out_path):
 
 if __name__ == "__main__":
     ds = load_dataset("uqa/UQA")
+    print(ds)
+
+    ex = ds["train"][0]
+    print(ex.keys())
+    print(ex["question"])
+    print(ex["answer"])
+
+    n_total = len(ds["train"])
+    n_ans = sum(not ex["is_impossible"] for ex in ds["train"])
+    print(f"train rows: {n_total}, answerable: {n_ans}")
     train_pairs = build_split(ds["train"], "data/train.tsv")
     valid_pairs = build_split(ds["validation"], "data/valid.tsv")
