@@ -46,7 +46,7 @@ def make_pair(example, max_src=60, max_tgt=25):
             return src, tgt
     return None
 
-
+#%%
 def build_split(split, out_path):
     pairs = [p for p in map(make_pair, split) if p is not None]
     with open(out_path, "w", encoding="utf-8", newline="") as f:
@@ -67,8 +67,10 @@ if __name__ == "__main__":
     n_total = len(ds["train"])
     n_ans = sum(not ex["is_impossible"] for ex in ds["train"])
     print(f"train rows: {n_total}, answerable: {n_ans}")
-    train_pairs = build_split(ds["train"], "data/train.tsv")
-    valid_pairs = build_split(ds["validation"], "data/valid.tsv")
+    train_pairs = build_split(ds["train"], "train.tsv")
+    valid_pairs = build_split(ds["validation"], "valid.tsv")
 
 
 
+
+# %%
