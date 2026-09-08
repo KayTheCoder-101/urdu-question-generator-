@@ -1,7 +1,18 @@
 # Person A/B — Task 1: Data preparation (tested, working version)
+    # %%
 from datasets import load_dataset
+ds = load_dataset("uqa/UQA")
+    # %%
+print(ds)
+ex = ds["train"][0]
+print(ex.keys())  # id, title, context, question, answers
+print(ex["question"])
+print(ex["answer"])  # {'text': [...], 'answer_start': [...]}
+n_total = len(ds["train"])
+n_ans = sum(len(a) > 0 for a in ds["train"]["answer"])
+print(f"train rows: {n_total}, answerable: {n_ans}")
+# %%
 import csv
-
 ANS_OPEN, ANS_CLOSE = "<ans>", "</ans>"
 SENT_DELIMS = "\u06D4\u061F!"
 
@@ -13,7 +24,7 @@ def split_sentences(text):
             start = i + 1
     if start < len(text):
         yield start, len(text), text[start:]
-
+#%%
 def make_pair(example, max_src=60, max_tgt=25):
     a_text = example["answer"]
     if not a_text:
@@ -36,6 +47,7 @@ def make_pair(example, max_src=60, max_tgt=25):
             return src, tgt
     return None
 
+#%%
 def build_split(split, out_path):
     pairs = [p for p in map(make_pair, split) if p is not None]
     with open(out_path, "w", encoding="utf-8", newline="") as f:
@@ -58,3 +70,6 @@ if __name__ == "__main__":
     print(f"train rows: {n_total}, answerable: {n_ans}")
     train_pairs = build_split(ds["train"], "data/train.tsv")
     valid_pairs = build_split(ds["validation"], "data/valid.tsv")
+
+
+# %%
