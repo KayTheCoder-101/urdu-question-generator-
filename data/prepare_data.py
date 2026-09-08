@@ -3,6 +3,7 @@
 from datasets import load_dataset
 ds = load_dataset("uqa/UQA")
 print(ds)
+
 # Inspect one example
 
 ex = ds["train"][0]
@@ -13,7 +14,6 @@ print(ex["answer"])
 n_total = len(ds["train"])
 n_ans = sum(len(a) > 0 for a in ds["train"]["answer"])
 print(f"train rows: {n_total}, answerable: {n_ans}")
-
 
 # A.3 — Create source-target question generation pairs
 
