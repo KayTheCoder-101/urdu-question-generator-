@@ -3,7 +3,7 @@
 Sequence-to-sequence question generation for Urdu, built and trained from scratch (RNN encoder-decoder with attention).
 
 ## Team
-- Person A: KayTheCoder-101
+- Person A: Kulsoom
 - Person B: Mobeen
 
 ## Project structure

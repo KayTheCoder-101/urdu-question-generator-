@@ -14,7 +14,7 @@ class encoder (nn.Module):
         outputs,(hidden,cell)=self.rnn(Embeddings)
         hiddenStates=hidden[0::2,:,:]
         BhiddenStates=hidden[1::2,:,:]
-        combining_hidden_states=torch.cat([hiddenStates,BhiddenStates],dim=2)
+        combining_hidden_states=torch.cat([hiddenStates,BhiddenStates],dim=2) #hr layer ka forward aur vector ab ik sath ik hi layer mai pry hain
         output_hidden=self.hidden(combining_hidden_states)
         cellStates=cell[0::2,:,:]
         BcellStates=cell[1::2,:,:]
@@ -23,11 +23,3 @@ class encoder (nn.Module):
 
         return outputs,output_hidden,output_cell
 
-
-
-enc = encoder(v_size=8000, e_size=256, h_size=512, layers=2, dout=0.3)
-dummy = torch.randint(0, 8000, (64, 30))
-outputs, hidden, cell = enc(dummy)
-print("outputs:", outputs.shape)
-print("hidden:", hidden.shape)
-print("cell:", cell.shape)
