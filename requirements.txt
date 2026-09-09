@@ -4,3 +4,4 @@ sacrebleu
 rouge-score
 torch
 streamlit
+matplotlib.pyplot 
