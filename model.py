@@ -20,12 +20,37 @@ class encoder (nn.Module):
         combining_cell_states=(cellStates + BcellStates) / 2
 
         return outputs, combining_hidden_states, combining_cell_states
+class BahdanauAttention(nn.Module):
+    def __init__(self,dec_size,enc_size):
+            super().__init__()
+            self.hid=nn.Linear(dec_size,enc_size)
+            self.enc=nn.Linear(enc_size,enc_size)
+            self.score=nn.Linear(enc_size,1)
+
+    def forward(self,d,e):
+        print(d.shape)
+        print(e.shape)
+        h=self.hid(d[-1])
+        ee=self.enc(e)
+        result = torch.unsqueeze(h,1)
+        r=result+ee
+        att=torch.tanh(r)
+        s=self.score(att)
+        sq=torch.squeeze(s,2)
+        output=torch.softmax(sq,dim=1)
+        usq=torch.unsqueeze(output,1)
+        result2=torch.bmm(usq,e)
+        context=result2  
+        print("context shape:", context.shape)
+        return context, output
+
+    
 
 class decoder(nn.Module):
     def __init__(self, hid_size, out_size, emb_size, layers, dout): #same dim for h_t & c_t, and for output_size & v_size
         super().__init__()
         self.embedding=nn.Embedding(out_size, emb_size)
-        self.attention=BahdanauAttention(hid_size*2)
+        self.attention=BahdanauAttention(hid_size,hid_size*2)
         self.lstm=nn.LSTM(emb_size + hid_size*2, hid_size, layers, batch_first=True, dropout=dout)
         self.out=nn.Linear(hid_size, out_size)
 
@@ -57,3 +82,4 @@ class decoder(nn.Module):
         outputs = torch.stack(outputs, dim=1)
         attentions = torch.stack(attentions, dim=1)          
         return outputs, attentions
+
