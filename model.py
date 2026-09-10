@@ -52,24 +52,8 @@ class decoder(nn.Module):
             if use_teacher_forcing:
                 inp_token = target[:, t].unsqueeze(1)
             else:
-                logits.argmax(-1).unsqueeze(1)
+                inp_token = logits.argmax(-1).unsqueeze(1)
 
         outputs = torch.stack(outputs, dim=1)
         attentions = torch.stack(attentions, dim=1)          
         return outputs, attentions
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
