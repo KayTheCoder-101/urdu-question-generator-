@@ -23,12 +23,12 @@ dec=decoder(h_size,v_size,e_size,layers,dout)
 
 Loss=nn.CrossEntropyLoss(ignore_index=0)
 
-optimizer=torch.optim.Adam(list(enc.parameters())+list(dec.parameters()),lr=0.001)
+optimizer=torch.optim.Adam(list(enc.parameters())+list(dec.parameters()),lr=0.0005)
 
 enc = enc.to(device)
 dec = dec.to(device)
 
-e=10
+e=15
 best_val_loss=float('inf')
 
 for epoch in range(e):
@@ -41,13 +41,12 @@ for epoch in range(e):
         src_batch = src_batch.to(device)
         tgt_batch = tgt_batch.to(device)
         enc_out,h,c=enc(src_batch)
-        outputs,att=dec(enc_out,h,c,tgt_batch)
+        outputs,att=dec(enc_out,h,c,tgt_batch,teacher_forcing_ratio=0.7)
         L=tgt_batch[:,1:].reshape(-1)
         f_out=outputs.reshape(-1,v_size)
         T_loss=Loss(f_out,L)
         optimizer.zero_grad() #poorany grad clean woh comput hou rahy thy sath sath
         T_loss.backward()
-        torch.nn.utils.clip_grad_norm_(list(enc.parameters())+list(dec.parameters()), max_norm=1.0)
         optimizer.step()
         t_loss_list.append(T_loss.item())
     print("avg training loss",sum(t_loss_list)/len(t_loss_list))
@@ -58,7 +57,7 @@ for epoch in range(e):
             src = src.to(device)
             tgt = tgt.to(device)
             enc_out,h,c=enc(src)
-            outputs,att=dec(enc_out,h,c,tgt, teacher_forcing_ratio=0)
+            outputs,att=dec(enc_out,h,c,tgt)
             L_v=tgt[:,1:].reshape(-1)
             for_out=outputs.reshape(-1,v_size)
             V_loss=Loss(for_out,L_v)
