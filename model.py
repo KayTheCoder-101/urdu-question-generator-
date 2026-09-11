@@ -28,8 +28,6 @@ class BahdanauAttention(nn.Module):
             self.score=nn.Linear(enc_size,1)
 
     def forward(self,d,e):
-        print(d.shape)
-        print(e.shape)
         h=self.hid(d[-1])
         ee=self.enc(e)
         result = torch.unsqueeze(h,1)
@@ -41,7 +39,6 @@ class BahdanauAttention(nn.Module):
         usq=torch.unsqueeze(output,1)
         result2=torch.bmm(usq,e)
         context=result2  
-        print("context shape:", context.shape)
         return context, output
 
     

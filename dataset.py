@@ -33,16 +33,5 @@ def padding(tensors):
     padded_sources = pad_sequence(sources, batch_first=True, padding_value=0)
     padded_targets = pad_sequence(targets, batch_first=True, padding_value=0)
     return padded_sources,padded_targets
-if __name__=="__main__":
-    ds=QGDataset("data/train.tsv","tokenizer/ur_sp.model")
-    print("total pairs",len(ds))
-    print("1st pairs",ds.pairs[0])
-    src,tgt=ds[0]
-    print("source and target tensor",src,tgt)
-    print(src.shape)
-    print(tgt.shape)
-    batch = [ds[0], ds[1], ds[2]]
-    padded_src, padded_tgt = padding(batch)
-    print("Padded source shape:", padded_src.shape)
-    print("Padded target shape:", padded_tgt.shape)
+
 
