@@ -41,7 +41,7 @@ for epoch in range(e):
         src_batch = src_batch.to(device)
         tgt_batch = tgt_batch.to(device)
         enc_out,h,c=enc(src_batch)
-        outputs,att=dec(enc_out,h,c,tgt,teacher_forcing_ratio=1.0)
+        outputs,att=dec(enc_out,h,c,tgt_batch,teacher_forcing_ratio=1.0)
         L=tgt_batch[:,1:].reshape(-1)
         f_out=outputs.reshape(-1,v_size)
         T_loss=Loss(f_out,L)
