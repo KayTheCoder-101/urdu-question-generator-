@@ -22,7 +22,7 @@ class QGDataset(Dataset):
         i=self.pairs[index]
         source,target=i
         source_id=self.sp.encode_as_ids(source)
-        target_id=self.sp.encode_as_ids(target)
+        target_id=[self.sp.bos_id()] + self.sp.encode_as_ids(target) + [self.sp.eos_id()]
         return torch.tensor(source_id),torch.tensor(target_id)
 def padding(tensors):
     sources=[]

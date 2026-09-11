@@ -5,7 +5,7 @@ import random
 class encoder (nn.Module):
     def __init__(self,v_size,e_size,h_size,layers,dout):
         super().__init__()
-        self.embedding=nn.Embedding(v_size,e_size)
+        self.embedding=nn.Embedding(v_size,e_size, padding_idx=0)
         self.rnn=nn.LSTM(e_size,h_size,layers,bidirectional=True,dropout=dout,batch_first=True)
 
     
@@ -20,6 +20,7 @@ class encoder (nn.Module):
         combining_cell_states=(cellStates + BcellStates) / 2
 
         return outputs, combining_hidden_states, combining_cell_states
+    
 class BahdanauAttention(nn.Module):
     def __init__(self,dec_size,enc_size):
             super().__init__()
@@ -41,12 +42,12 @@ class BahdanauAttention(nn.Module):
         context=result2  
         return context, output
 
-    
+
 
 class decoder(nn.Module):
     def __init__(self, hid_size, out_size, emb_size, layers, dout): #same dim for h_t & c_t, and for output_size & v_size
         super().__init__()
-        self.embedding=nn.Embedding(out_size, emb_size)
+        self.embedding=nn.Embedding(out_size, emb_size, padding_idx=0)
         self.attention=BahdanauAttention(hid_size,hid_size*2)
         self.lstm=nn.LSTM(emb_size + hid_size*2, hid_size, layers, batch_first=True, dropout=dout)
         self.out=nn.Linear(hid_size, out_size)
