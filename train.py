@@ -47,6 +47,7 @@ for epoch in range(e):
         T_loss=Loss(f_out,L)
         optimizer.zero_grad() #poorany grad clean woh comput hou rahy thy sath sath
         T_loss.backward()
+        torch.nn.utils.clip_grad_norm_(list(enc.parameters())+list(dec.parameters()), max_norm=1.0)
         optimizer.step()
         t_loss_list.append(T_loss.item())
     print("avg training loss",sum(t_loss_list)/len(t_loss_list))
@@ -57,7 +58,7 @@ for epoch in range(e):
             src = src.to(device)
             tgt = tgt.to(device)
             enc_out,h,c=enc(src)
-            outputs,att=dec(enc_out,h,c,tgt)
+            outputs,att=dec(enc_out,h,c,tgt,teacher_forcing_ratio=0)
             L_v=tgt[:,1:].reshape(-1)
             for_out=outputs.reshape(-1,v_size)
             V_loss=Loss(for_out,L_v)
