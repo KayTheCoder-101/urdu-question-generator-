@@ -18,38 +18,21 @@ Output: "دریائے سندھ کی لمبائی کتنی ہے؟"
 
 ## Project Structure
 
-urdu-question-generation/
-├── data/
-│   ├── prepare_data.py       # Loads UQA, extracts sentences, wraps answers, filters by length
-│   ├── train.tsv              # Generated training pairs (gitignored, regenerate via script)
-│   └── valid.tsv               # Generated validation pairs (gitignored, regenerate via script)
-│
-├── tokenizer/
-│   ├── train_tokenizer.py     # Trains SentencePiece tokenizer on train.tsv
-│   ├── ur_sp.model             # Trained SentencePiece model
-│   └── ur_sp.vocab              # Vocabulary file
-│
-├── model.py                    # Encoder, BahdanauAttention, Decoder classes
-├── dataset.py                    # QGDataset (tokenization) + collate_fn (padding)
-├── train.py                       # Training loop: loss, optimizer, checkpointing, early stopping
-├── decode.py                       # greedy_decode() and beam_search() functions
-├── evaluate.py                      # BLEU-4, ROUGE-L, Perplexity, unk-rate on UQA/Wiki-UQA
-├── app.py                            # Frontend (Streamlit/Gradio) for interactive demo
-│
-├── results/
-│   ├── length_histograms.png          # Source/target length distributions
-│   ├── loss.png                        # Training vs validation loss curve
-│   ├── attention_heatmap.png            # Attention visualization for a sample decode
-│   ├── samples.tsv                       # 50 validation examples: source, reference, greedy, beam
-│   ├── automatic_metrics.csv              # BLEU/ROUGE/PPL/unk% per split and decoding method
-│   └── screenshot.png                      # Frontend UI screenshot
-│
-├── notebook.ipynb                # Colab driver notebook (clone, install, train, evaluate)
-├── medium_blog_draft.md           # Blog post draft (problem, design, results, failure cases)
-├── best_model.pt                   # Trained model checkpoint (gitignored — see Model Checkpoint below)
-├── requirements.txt
-├── .gitignore
-└── README.md
+```mermaid
+graph TD
+    A[data/prepare_data.py] -->|generates| B[train.tsv / valid.tsv]
+    B --> C[tokenizer/train_tokenizer.py]
+    C -->|generates| D[ur_sp.model / ur_sp.vocab]
+    B --> E[dataset.py<br/>QGDataset + padding]
+    D --> E
+    E --> F[model.py<br/>Encoder + Attention + Decoder]
+    F --> G[train.py<br/>training loop]
+    G -->|saves| H[best_model.pt]
+    H --> I[decode.py<br/>greedy + beam search]
+    H --> J[evaluate.py<br/>BLEU / ROUGE-L / PPL]
+    I --> K[app.py<br/>frontend]
+    J --> L[results/<br/>metrics, samples, figures]
+```
 
 ## Model Architecture
 
