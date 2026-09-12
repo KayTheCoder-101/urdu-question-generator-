@@ -31,7 +31,7 @@ dec = dec.to(device)
 e=15
 best_val_loss=float('inf')
 patience_counter=0
-patience_limit=3
+patience_limit=5
 
 for epoch in range(e):
     print("Epoch Number:",epoch+1)
@@ -62,7 +62,7 @@ for epoch in range(e):
             tgt = tgt.to(device)
             mask = (src != 0).to(device)
             enc_out,h,c=enc(src)
-            outputs,att=dec(enc_out,h,c,tgt,teacher_forcing_ratio=0, mask=mask)
+            outputs,att=dec(enc_out,h,c,tgt,teacher_forcing_ratio=1, mask=mask)
             L_v=tgt[:,1:].reshape(-1)
             for_out=outputs.reshape(-1,v_size)
             V_loss=Loss(for_out,L_v)
