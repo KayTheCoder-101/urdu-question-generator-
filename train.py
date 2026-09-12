@@ -16,20 +16,22 @@ v_size=8000
 e_size=256
 h_size=512
 layers=2
-dout=0.3
+dout=0.4
 
 enc=encoder(v_size,e_size,h_size,layers,dout)
 dec=decoder(h_size,v_size,e_size,layers,dout)
 
 Loss=nn.CrossEntropyLoss(ignore_index=0)
 
-optimizer=torch.optim.Adam(list(enc.parameters())+list(dec.parameters()),lr=0.0005)
+optimizer=torch.optim.Adam(list(enc.parameters())+list(dec.parameters()),lr=0.001, weight_decay=1e-5)
 
 enc = enc.to(device)
 dec = dec.to(device)
 
 e=15
 best_val_loss=float('inf')
+patience_counter=0
+patience_limit=3
 
 for epoch in range(e):
     print("Epoch Number:",epoch+1)
@@ -40,8 +42,9 @@ for epoch in range(e):
     for src_batch,tgt_batch in train_loader:
         src_batch = src_batch.to(device)
         tgt_batch = tgt_batch.to(device)
+        mask = (src_batch != 0).to(device)
         enc_out,h,c=enc(src_batch)
-        outputs,att=dec(enc_out,h,c,tgt_batch,teacher_forcing_ratio=0.7)
+        outputs,att=dec(enc_out,h,c,tgt_batch,teacher_forcing_ratio=0.5, mask=mask)
         L=tgt_batch[:,1:].reshape(-1)
         f_out=outputs.reshape(-1,v_size)
         T_loss=Loss(f_out,L)
@@ -57,8 +60,9 @@ for epoch in range(e):
         for src,tgt in valid_loader:
             src = src.to(device)
             tgt = tgt.to(device)
+            mask = (src != 0).to(device)
             enc_out,h,c=enc(src)
-            outputs,att=dec(enc_out,h,c,tgt,teacher_forcing_ratio=0)
+            outputs,att=dec(enc_out,h,c,tgt,teacher_forcing_ratio=0, mask=mask)
             L_v=tgt[:,1:].reshape(-1)
             for_out=outputs.reshape(-1,v_size)
             V_loss=Loss(for_out,L_v)
@@ -67,5 +71,12 @@ for epoch in range(e):
         print("avg validation loss",avg_val_loss)
         if avg_val_loss<best_val_loss:
             best_val_loss=avg_val_loss
+            patience_counter=0
             torch.save({'encoder': enc.state_dict(), 'decoder': dec.state_dict()}, "best_model.pt")
-
+            print("New best model saved!")
+        else:
+            patience_counter+=1
+            print(f"No improvement. Patience: {patience_counter}/{patience_limit}")
+            if patience_counter>=patience_limit:
+                print("Early stopping triggered.")
+                break
