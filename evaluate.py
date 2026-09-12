@@ -75,7 +75,7 @@ def calculate_perplexity(pairs):
             mask = (src_tensor != 0).to(device)
             enc_out, h, c = enc(src_tensor)
 
-            outputs, _ = dec(enc_out, h, c, tgt_tensor, teacher_forcing_ratio=0, mask=mask)
+            outputs, _ = dec(enc_out, h, c, tgt_tensor, teacher_forcing_ratio=1.0, mask=mask)
 
             L = tgt_tensor[:, 1:].reshape(-1)
             f_out = outputs.reshape(-1, outputs.shape[-1])
@@ -150,8 +150,7 @@ if __name__ == "__main__":
         "UQA Validation"
     )
 
-    # Wiki-UQA — uncomment once wiki_valid.tsv is prepared
-    # run(
-    #     "data/wiki_valid.tsv",
-    #     "Wiki-UQA"
-    # )
+    run(
+         "data/wiki_valid.tsv",
+         "Wiki-UQA"
+     )

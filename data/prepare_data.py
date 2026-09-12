@@ -104,5 +104,8 @@ if __name__ == "__main__":
 
     train_pairs, train_src_lens, train_tgt_lens = build_split(ds["train"], "data/train.tsv")
     valid_pairs, valid_src_lens, valid_tgt_lens = build_split(ds["validation"], "data/valid.tsv")
+        # Wiki-UQA — evaluation only, no training
+    wiki_ds = load_dataset("uqa/Wiki-UQA")
+    wiki_pairs, wiki_src_lens, wiki_tgt_lens = build_split(wiki_ds["train"], "data/wiki_valid.tsv")
 
     plot_length_histograms(train_src_lens, train_tgt_lens, "results/length_histograms.png")
