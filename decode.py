@@ -1,15 +1,23 @@
-#%%
 import torch
 import sentencepiece as spm
 
 from model import encoder, decoder
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+
+# load tokenizer
 
 sp = spm.SentencePieceProcessor(
     model_file="tokenizer/ur_sp.model"
 )
 
+
+# model settings
 
 v_size = 8000
 e_size = 256
@@ -17,10 +25,27 @@ h_size = 512
 layers = 2
 dout = 0.3
 
-enc = encoder(v_size, e_size, h_size, layers, dout)
-dec = decoder(h_size, v_size, e_size, layers, dout)
+
+# create model
+
+enc = encoder(
+    v_size,
+    e_size,
+    h_size,
+    layers,
+    dout
+)
+
+dec = decoder(
+    h_size,
+    v_size,
+    e_size,
+    layers,
+    dout
+)
 
 
+# load trained model
 
 checkpoint = torch.load(
     "best_model.pt",
@@ -30,7 +55,6 @@ checkpoint = torch.load(
 enc.load_state_dict(checkpoint["encoder"])
 dec.load_state_dict(checkpoint["decoder"])
 
-
 enc = enc.to(device)
 dec = dec.to(device)
 
@@ -38,63 +62,218 @@ enc.eval()
 dec.eval()
 
 
+#greedy decoding
 
-context = "نارمن (Norman: Nourmands؛ French: Normands؛ Latin: Normanni) وہ لوگ تھے جنہوں نے 10 ویں اور 11 ویں صدیوں میں <ans> فرانس </ans> کے ایک خطے نارمنڈی کو اپنا نام دیا۔"
+def greedy_decode(context, max_len=30):
 
+    src_ids = sp.encode_as_ids(context)
 
-# Convert context into token IDs
-src_ids = sp.encode_as_ids(context)
-
-src = torch.tensor(
-    src_ids,
-    dtype=torch.long
-).unsqueeze(0).to(device)
-
-
-
-with torch.no_grad():
-
-    enc_out, h, c = enc(src)
-
-    # Start decoder with BOS
-    current_token = torch.tensor(
-        [[sp.bos_id()]],
+    src = torch.tensor(
+        src_ids,
         dtype=torch.long
-    ).to(device)
+    ).unsqueeze(0).to(device)
 
-    generated_ids = []
+    with torch.no_grad():
 
-    # Maximum question length
-    for _ in range(30):
+        enc_out, h, c = enc(src)
 
-        logits, h, c, attention = dec.forward_step(
-            current_token,
-            h,
-            c,
-            enc_out
-        )
-
-        # Pick token with highest probability
-        next_token = logits.argmax(-1).item()
-
-        # Stop if EOS is generated
-        if next_token == sp.eos_id():
-            break
-
-        generated_ids.append(next_token)
-
-        # Feed predicted token back into decoder
         current_token = torch.tensor(
-            [[next_token]],
+            [[sp.bos_id()]],
             dtype=torch.long
         ).to(device)
 
+        generated_ids = []
+
+        for _ in range(max_len):
+
+            logits, h, c, attention = dec.forward_step(
+                current_token,
+                h,
+                c,
+                enc_out
+            )
+
+            next_token = logits.argmax(-1).item()
+
+            if next_token == sp.eos_id():
+                break
+
+            generated_ids.append(next_token)
+
+            current_token = torch.tensor(
+                [[next_token]],
+                dtype=torch.long
+            ).to(device)
+
+    return sp.decode(generated_ids)
 
 
-question = sp.decode(generated_ids)
+# beam search
 
-print("Context:")
-print(context)
+def beam_search(context, beam_width=3, max_len=30):
 
-print("\nGenerated Question:")
-print(question)
+    src_ids = sp.encode_as_ids(context)
+
+    src = torch.tensor(
+        src_ids,
+        dtype=torch.long
+    ).unsqueeze(0).to(device)
+
+    with torch.no_grad():
+
+        # Encode context only once
+        enc_out, h, c = enc(src)
+
+        bos = sp.bos_id()
+        eos = sp.eos_id()
+
+        # Each beam:
+        # (token_ids, hidden, cell, score, finished)
+
+        beams = [
+            (
+                [bos],
+                h,
+                c,
+                0.0,
+                False
+            )
+        ]
+
+        for _ in range(max_len):
+
+            candidates = []
+
+            for tokens, beam_h, beam_c, score, finished in beams:
+
+                # If this beam already ended, keep it
+                if finished:
+                    candidates.append(
+                        (
+                            tokens,
+                            beam_h,
+                            beam_c,
+                            score,
+                            True
+                        )
+                    )
+                    continue
+
+                current_token = torch.tensor(
+                    [[tokens[-1]]],
+                    dtype=torch.long
+                ).to(device)
+
+                logits, new_h, new_c, attention = dec.forward_step(
+                    current_token,
+                    beam_h,
+                    beam_c,
+                    enc_out
+                )
+
+                # Convert logits to log probabilities
+                log_probs = torch.log_softmax(
+                    logits,
+                    dim=-1
+                )
+
+                # Take top beam_width possible next tokens
+                top_log_probs, top_tokens = torch.topk(
+                    log_probs,
+                    beam_width
+                )
+
+                for i in range(beam_width):
+
+                    next_token = top_tokens[0, i].item()
+                    token_score = top_log_probs[0, i].item()
+
+                    new_tokens = tokens + [next_token]
+                    new_score = score + token_score
+
+                    is_finished = (
+                        next_token == eos
+                    )
+
+                    candidates.append(
+                        (
+                            new_tokens,
+                            new_h,
+                            new_c,
+                            new_score,
+                            is_finished
+                        )
+                    )
+
+            # Keep only the best beams
+            candidates.sort(
+                key=lambda x: x[3],
+                reverse=True
+            )
+
+            beams = candidates[:beam_width]
+
+            # Stop if all beams have reached EOS
+            if all(
+                beam[4]
+                for beam in beams
+            ):
+                break
+
+        # Best completed/remaining beam
+        best_beam = max(
+            beams,
+            key=lambda x: x[3]
+        )
+
+        best_tokens = best_beam[0]
+
+        # Remove BOS
+        if best_tokens[0] == bos:
+            best_tokens = best_tokens[1:]
+
+        # Remove EOS
+        if eos in best_tokens:
+            best_tokens = best_tokens[
+                :best_tokens.index(eos)
+            ]
+
+        return sp.decode(best_tokens)
+
+
+# test examples
+
+test_examples = [
+    "قائداعظم محمد علی جناح <ans> 1948 </ans> میں انتقال کر گئے۔",
+    "علامہ اقبال کو <ans> مشرق کا شاعر </ans> کہا جاتا ہے۔",
+    "کراچی پاکستان کا سب سے بڑا <ans> شہر </ans> ہے۔",
+    "دریائے سندھ کی لمبائی <ans> 3180 کلومیٹر </ans> ہے۔",
+    "یہ اجلاس <ans> اسلام آباد </ans> میں منعقد ہوا۔",
+]
+
+
+# test
+
+if __name__ == "__main__":
+
+    for i, context in enumerate(test_examples, 1):
+
+        print("\n" + "=" * 60)
+        print("Example", i)
+
+        print("\nContext:")
+        print(context)
+
+        greedy_question = greedy_decode(context)
+
+        beam_question = beam_search(
+            context,
+            beam_width=3,
+            max_len=30
+        )
+
+        print("\nGreedy Search:")
+        print(greedy_question)
+
+        print("\nBeam Search:")
+        print(beam_question)
