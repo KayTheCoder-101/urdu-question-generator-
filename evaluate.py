@@ -1,8 +1,10 @@
 import csv
 import sacrebleu
+import torch
+import torch.nn as nn
 from rouge_score import rouge_scorer
 
-from decode import greedy_decode, beam_search
+from decode import greedy_decode, beam_search, enc, dec, sp, device
 
 
 # Whitespace-based tokenizer for Urdu (rouge_score's default tokenizer
@@ -56,6 +58,36 @@ def score(hyps, refs):
     return bleu, rouge, unk_rate(hyps)
 
 
+# Calculate perplexity using teacher-forced loss
+def calculate_perplexity(pairs):
+    loss_fn = nn.CrossEntropyLoss(ignore_index=0)
+    total_loss = 0.0
+    count = 0
+
+    with torch.no_grad():
+        for src, tgt in pairs:
+            src_ids = sp.encode_as_ids(src)
+            tgt_ids = [sp.bos_id()] + sp.encode_as_ids(tgt) + [sp.eos_id()]
+
+            src_tensor = torch.tensor(src_ids, dtype=torch.long).unsqueeze(0).to(device)
+            tgt_tensor = torch.tensor(tgt_ids, dtype=torch.long).unsqueeze(0).to(device)
+
+            mask = (src_tensor != 0).to(device)
+            enc_out, h, c = enc(src_tensor)
+
+            outputs, _ = dec(enc_out, h, c, tgt_tensor, teacher_forcing_ratio=0, mask=mask)
+
+            L = tgt_tensor[:, 1:].reshape(-1)
+            f_out = outputs.reshape(-1, outputs.shape[-1])
+
+            loss = loss_fn(f_out, L)
+            total_loss += loss.item()
+            count += 1
+
+    avg_loss = total_loss / count
+    return torch.exp(torch.tensor(avg_loss)).item()
+
+
 # Evaluate one dataset
 def run(tsv_path, name):
 
@@ -90,18 +122,22 @@ def run(tsv_path, name):
         references
     )
 
+    ppl = calculate_perplexity(pairs)
+
     print("\n" + "=" * 50)
     print(name)
 
     print(
         f"Greedy: BLEU={g_bleu:.2f}, "
         f"ROUGE-L={g_rouge:.4f}, "
+        f"PPL={ppl:.2f}, "
         f"UNK={g_unk * 100:.2f}%"
     )
 
     print(
         f"Beam:   BLEU={b_bleu:.2f}, "
         f"ROUGE-L={b_rouge:.4f}, "
+        f"PPL={ppl:.2f}, "
         f"UNK={b_unk * 100:.2f}%"
     )
 
@@ -114,3 +150,8 @@ if __name__ == "__main__":
         "UQA Validation"
     )
 
+    # Wiki-UQA — uncomment once wiki_valid.tsv is prepared
+    # run(
+    #     "data/wiki_valid.tsv",
+    #     "Wiki-UQA"
+    # )

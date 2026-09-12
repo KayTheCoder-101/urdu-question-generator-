@@ -48,7 +48,7 @@ for epoch in range(e):
         L=tgt_batch[:,1:].reshape(-1)
         f_out=outputs.reshape(-1,v_size)
         T_loss=Loss(f_out,L)
-        optimizer.zero_grad() #poorany grad clean woh comput hou rahy thy sath sath
+        optimizer.zero_grad()
         T_loss.backward()
         torch.nn.utils.clip_grad_norm_(list(enc.parameters())+list(dec.parameters()), max_norm=1.0)
         optimizer.step()

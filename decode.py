@@ -236,11 +236,50 @@ test_examples = [
     "دریائے سندھ کی لمبائی <ans> 3180 کلومیٹر </ans> ہے۔",
     "یہ اجلاس <ans> اسلام آباد </ans> میں منعقد ہوا۔",
 ]
+import csv
 
+def load_real_examples(tsv_path, n=5):
+    examples = []
+    with open(tsv_path, encoding="utf-8") as f:
+        reader = csv.reader(f, delimiter="\t")
+        for row in reader:
+            if len(row) == 2:
+                examples.append((row[0], row[1]))
+    return examples[:n]
 
 # test
 
 if __name__ == "__main__":
+
+    print("\n" + "#" * 60)
+    print("REAL EXAMPLES FROM VALIDATION SET")
+    print("#" * 60)
+
+    real_examples = load_real_examples("data/valid.tsv", n=5)
+
+    for i, (context, actual_question) in enumerate(real_examples, 1):
+
+        print("\n" + "=" * 60)
+        print("Real Example", i)
+
+        print("\nContext:")
+        print(context)
+
+        print("\nActual Question (from dataset):")
+        print(actual_question)
+
+        greedy_question = greedy_decode(context)
+        beam_question = beam_search(context, beam_width=3, max_len=30)
+
+        print("\nGreedy Search:")
+        print(greedy_question)
+
+        print("\nBeam Search:")
+        print(beam_question)
+
+    print("\n" + "#" * 60)
+    print("HAND-WRITTEN TEST EXAMPLES")
+    print("#" * 60)
 
     for i, context in enumerate(test_examples, 1):
 
@@ -251,12 +290,7 @@ if __name__ == "__main__":
         print(context)
 
         greedy_question = greedy_decode(context)
-
-        beam_question = beam_search(
-            context,
-            beam_width=3,
-            max_len=30
-        )
+        beam_question = beam_search(context, beam_width=3, max_len=30)
 
         print("\nGreedy Search:")
         print(greedy_question)
